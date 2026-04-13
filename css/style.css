@@ -152,14 +152,3 @@ body { overflow: hidden; background: #f0f4f8; }
     position: absolute; top: 45px; background: white; padding: 15px;
     border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.1);
 }
-/* 确保地图容器有明确的背景 */
-#map {
-    background-color: #f8f9fa;
-    width: 100%;
-    height: 100%;
-}
-
-/* 修复 Leaflet 图层在容器内的显示 */
-.leaflet-container {
-    background: #f0f0f0;
-}

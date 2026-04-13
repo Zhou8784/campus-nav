@@ -1,29 +1,69 @@
 function parseScheduleText(text) {
-    // 提取教室号模式：支持“厚德1503”、“1栋101”、“知行205”等
-    const roomRegex = /([A-Za-z0-9栋楼厚德知行明德]+[\d\-]+室?)/g;
-    let matches = text.match(roomRegex) || [];
-    // 简化处理：只保留数字和栋信息
-    const rooms = [...new Set(matches.map(m => m.replace(/室$/, '').trim()))];
-    const schedule = rooms.map((room, idx) => ({
-        id: `course_${idx}`,
-        name: `课程${idx+1}`,
-        room: room,
-        time: '周一 8:00-9:40'
-    }));
+    const lines = text.split('\n');
+    const schedule = [];
+    
+    lines.forEach(line => {
+        line = line.trim();
+        if (!line) return;
+        
+        // 匹配房间号：如 "3栋2楼203"
+        const roomMatch = line.match(/(\d+)栋(\d+)楼(\d+)/);
+        if (!roomMatch) return;
+        
+        const building = roomMatch[1];
+        const floor = roomMatch[2];
+        const roomNum = roomMatch[3];
+        const roomName = `${building}栋${floor}楼${roomNum}`;
+        const roomId = `${building}-${roomNum}`;
+        
+        // 提取时间
+        const timeMatch = line.match(/\d{1,2}:\d{2}[—\-]\d{1,2}:\d{2}/);
+        const time = timeMatch ? timeMatch[0] : '';
+        
+        // 提取星期
+        const weekdayMatch = line.match(/周[一二三四五六日]/);
+        const weekday = weekdayMatch ? weekdayMatch[0] : '';
+        
+        // 提取课程名（在时间之后，房间号之前）
+        let courseName = '未知课程';
+        if (timeMatch) {
+            const timeIndex = line.indexOf(timeMatch[0]) + timeMatch[0].length;
+            const roomIndex = line.indexOf(roomName);
+            if (roomIndex > timeIndex) {
+                courseName = line.substring(timeIndex, roomIndex).trim();
+            }
+        }
+        
+        schedule.push({
+            id: `imported_${Date.now()}_${schedule.length}`,
+            name: courseName,
+            room: roomName,
+            roomId: roomId,
+            time: `${weekday} ${time}`
+        });
+    });
+    
     return schedule;
 }
 
-// 尝试将课表教室名映射到 room_id
 function mapToRoomId(roomName) {
-    // 简单映射：如果包含数字，尝试匹配
-    const numMatch = roomName.match(/(\d+)栋?(\d+)/);
-    if (numMatch) {
-        const building = numMatch[1];
-        const roomNum = numMatch[2];
-        const candidate = allRooms.find(r => r.room_id.includes(`${building}-${roomNum}`) || r.name.includes(roomName));
-        return candidate ? candidate.room_id : null;
+    if (!roomName) return null;
+    
+    // 1. 直接匹配 room_id
+    const directMatch = allRooms.find(r => r.room_id === roomName);
+    if (directMatch) return directMatch.room_id;
+    
+    // 2. 处理 "3栋2楼203" -> "3-203"
+    const buildingRoomMatch = roomName.match(/(\d+)栋(\d+)楼(\d+)/);
+    if (buildingRoomMatch) {
+        const candidateId = `${buildingRoomMatch[1]}-${buildingRoomMatch[3]}`;
+        const candidate = allRooms.find(r => r.room_id === candidateId);
+        if (candidate) return candidate.room_id;
     }
-    // 直接查找名称包含
-    const found = allRooms.find(r => r.name.includes(roomName) || r.room_id.includes(roomName));
-    return found ? found.room_id : null;
+    
+    // 3. 模糊匹配
+    const nameMatch = allRooms.find(r => r.name.includes(roomName) || roomName.includes(r.name));
+    if (nameMatch) return nameMatch.room_id;
+    
+    return null;
 }
