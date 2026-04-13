@@ -4,25 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>棱镜--智慧校园高精度室内导航</title>
-    <!-- MapLibre GL JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- 自定义样式 -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/mobile.css" media="screen and (max-width: 768px)">
 </head>
 <body>
-    <!-- 欢迎遮罩层 -->
     <div id="splash-screen" class="splash-screen">
         <div class="splash-content">
             <h1>🏫 棱镜--智慧校园高精度室内导航</h1>
             <p>高精度室内导航 · 课表联动</p>
-            <div class="loading-dots">
-                <span></span><span></span><span></span>
-            </div>
+            <div class="loading-dots"><span></span><span></span><span></span></div>
         </div>
     </div>
 
-    <!-- 首次引导弹窗 -->
     <div id="guide-modal" class="guide-modal" style="display: none;">
         <div class="guide-card">
             <h3>👋 欢迎使用室内导航</h3>
@@ -33,9 +27,7 @@
         </div>
     </div>
 
-    <!-- 主布局 -->
     <div class="app-container">
-        <!-- 侧边栏（桌面） / 底部抽屉（移动端） -->
         <aside id="sidebar" class="sidebar">
             <div class="sidebar-header">
                 <h2>📋 我的课表</h2>
@@ -69,9 +61,22 @@
                 <label><input type="radio" name="route-type" value="shortest" checked> 最短路径</label>
                 <label><input type="radio" name="route-type" value="stairs"> 优先楼梯</label>
             </div>
+
+            <!-- ========== 新增：触屏选点导航控件 ========== -->
+            <div class="point-picker">
+                <div class="picker-row">
+                    <button id="pick-start-btn" class="picker-btn start-btn">📍 选择起点</button>
+                    <span id="start-point-label" class="point-label">未选择</span>
+                </div>
+                <div class="picker-row">
+                    <button id="pick-end-btn" class="picker-btn end-btn">🏁 选择终点</button>
+                    <span id="end-point-label" class="point-label">未选择</span>
+                </div>
+                <button id="start-navigation-btn" class="nav-start-btn" disabled>🚀 开始导航</button>
+            </div>
+            <!-- ========== 新增结束 ========== -->
         </aside>
 
-        <!-- 地图容器 -->
         <main id="map-container" class="map-container">
             <div class="map-controls">
                 <div class="floor-switcher">
@@ -84,7 +89,6 @@
             <div id="map" class="map"></div>
         </main>
 
-        <!-- 课表导入模态框 -->
         <div id="import-modal" class="modal" style="display: none;">
             <div class="modal-content">
                 <h3>📥 导入课表</h3>
@@ -98,7 +102,6 @@
             </div>
         </div>
 
-        <!-- 路径信息面板 -->
         <div id="route-panel" class="route-panel" style="display: none;">
             <div class="route-header">
                 <span>🚶 导航路线</span>
@@ -107,7 +110,6 @@
             <div id="route-info" class="route-info"></div>
         </div>
 
-        <!-- 提醒设置 -->
         <div class="reminder-settings">
             <button id="reminder-btn" class="reminder-btn">⏰ 提醒设置</button>
             <div id="reminder-dropdown" class="reminder-dropdown" style="display: none;">
@@ -121,9 +123,7 @@
         </div>
     </div>
 
-    <!-- 脚本 -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- 真实数据 -->
     <script src="data/HD_1F2F.js"></script>
     <script src="js/config.js"></script>
     <script src="js/mapEngine.js"></script>
