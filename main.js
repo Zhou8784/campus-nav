@@ -2,9 +2,9 @@ let currentSchedule = [];
 let activeTypes = ['多媒体教室', '办公室', '卫生间', '饮水机', '打印机', '楼梯间', '功能性公用自习室', '仓库'];
 
 // 选点状态
-let startPoint = null;      // { roomId, name, center }
+let startPoint = null;
 let endPoint = null;
-let pickingMode = null;     // 'start' 或 'end'
+window.pickingMode = null;  // 挂载到 window 以便 mapEngine 访问
 
 // ========== 默认课表 ==========
 const DEFAULT_SCHEDULE = [
@@ -20,7 +20,6 @@ const DEFAULT_SCHEDULE = [
     { id: 'default_10', name: '大学英语', room: '2栋1楼103', roomId: '2-103', time: '周五 14:30-16:55' },
     { id: 'default_11', name: '思想道德与法治', room: '3栋1楼102', roomId: '3-102', time: '周六 14:30-17:40' }
 ];
-// ===================================================
 
 window.onload = () => {
     initMap();
@@ -50,18 +49,18 @@ window.onload = () => {
     requestNotificationPermission();
 };
 
-// 暴露给 mapEngine 的选点回调
+// 选点回调
 window.setPickedPoint = (room) => {
-    if (pickingMode === 'start') {
+    if (window.pickingMode === 'start') {
         startPoint = room;
         document.getElementById('start-point-label').textContent = room.name;
         document.getElementById('pick-start-btn').classList.remove('active');
-    } else if (pickingMode === 'end') {
+    } else if (window.pickingMode === 'end') {
         endPoint = room;
         document.getElementById('end-point-label').textContent = room.name;
         document.getElementById('pick-end-btn').classList.remove('active');
     }
-    pickingMode = null;
+    window.pickingMode = null;
     map.getContainer().style.cursor = '';
     
     document.getElementById('start-navigation-btn').disabled = !(startPoint && endPoint);
@@ -144,14 +143,14 @@ function bindEvents() {
     const navStartBtn = document.getElementById('start-navigation-btn');
 
     pickStartBtn.onclick = () => {
-        pickingMode = 'start';
+        window.pickingMode = 'start';
         pickStartBtn.classList.add('active');
         pickEndBtn.classList.remove('active');
         map.getContainer().style.cursor = 'crosshair';
     };
 
     pickEndBtn.onclick = () => {
-        pickingMode = 'end';
+        window.pickingMode = 'end';
         pickEndBtn.classList.add('active');
         pickStartBtn.classList.remove('active');
         map.getContainer().style.cursor = 'crosshair';
@@ -171,7 +170,7 @@ function bindEvents() {
             document.getElementById('route-panel').style.display = 'block';
             document.getElementById('route-info').innerHTML = `从 ${startPoint.name} 到 ${endPoint.name}`;
         } else {
-            alert('路径规划失败');
+            alert('路径规划失败，请确保起点和终点在同一楼层或通过楼梯可达。');
         }
     };
 }

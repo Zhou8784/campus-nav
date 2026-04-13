@@ -57,11 +57,13 @@ function redrawRoomsByFloor(floor) {
             color: '#333',
             weight: 1.5,
             fillColor: color,
-            fillOpacity: 0.6
+            fillOpacity: 0.6,
+            interactive: true
         }).addTo(roomLayerGroup);
         
-        // 点击处理：选点模式优先
-        polygon.on('click', () => {
+        // 绑定点击事件
+        polygon.on('click', function(e) {
+            L.DomEvent.stopPropagation(e);
             if (window.pickingMode) {
                 if (typeof window.setPickedPoint === 'function') {
                     window.setPickedPoint({
@@ -82,7 +84,8 @@ function redrawRoomsByFloor(floor) {
                 className: 'room-label',
                 html: `<div style="font-size:10px;color:#000;text-shadow:0 0 3px #fff;white-space:nowrap;pointer-events:none;">${label}</div>`,
                 iconSize: [40, 20]
-            })
+            }),
+            interactive: false
         }).addTo(roomLayerGroup);
     });
 }
@@ -109,10 +112,12 @@ function filterPoiByTypes(activeTypes) {
             color: '#333',
             weight: 1.5,
             fillColor: color,
-            fillOpacity: 0.6
+            fillOpacity: 0.6,
+            interactive: true
         }).addTo(roomLayerGroup);
         
-        polygon.on('click', () => {
+        polygon.on('click', function(e) {
+            L.DomEvent.stopPropagation(e);
             if (window.pickingMode) {
                 if (typeof window.setPickedPoint === 'function') {
                     window.setPickedPoint({
@@ -128,7 +133,8 @@ function filterPoiByTypes(activeTypes) {
         
         const label = room.name.replace(room.building_name, '').replace(/楼/g, '');
         L.marker([room.center[1], room.center[0]], {
-            icon: L.divIcon({ className: 'room-label', html: `<div style="font-size:10px;color:#000;text-shadow:0 0 3px #fff;white-space:nowrap;pointer-events:none;">${label}</div>`, iconSize: [40, 20] })
+            icon: L.divIcon({ className: 'room-label', html: `<div style="font-size:10px;color:#000;text-shadow:0 0 3px #fff;white-space:nowrap;pointer-events:none;">${label}</div>`, iconSize: [40, 20] }),
+            interactive: false
         }).addTo(roomLayerGroup);
     });
 }
