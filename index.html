@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>棱镜--智慧校园高精度室内导航</title>
+    <!-- MapLibre GL JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- 自定义样式 -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/mobile.css" media="screen and (max-width: 768px)">
+</head>
+<body>
+    <!-- 欢迎遮罩层 -->
+    <div id="splash-screen" class="splash-screen">
+        <div class="splash-content">
+            <h1>🏫 厚德楼 · 智慧空间</h1>
+            <p>高精度室内导航 · 课表联动</p>
+            <div class="loading-dots">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 首次引导弹窗 -->
+    <div id="guide-modal" class="guide-modal" style="display: none;">
+        <div class="guide-card">
+            <h3>👋 欢迎使用室内导航</h3>
+            <div class="guide-step"><span>1️⃣</span> 点击下方导入课表，粘贴课程信息</div>
+            <div class="guide-step"><span>2️⃣</span> 点击课程旁的「导航」按钮</div>
+            <div class="guide-step"><span>3️⃣</span> 切换楼层 / 2D-3D 视角</div>
+            <button id="close-guide" class="btn-primary">开始探索</button>
+        </div>
+    </div>
+
+    <!-- 主布局 -->
+    <div class="app-container">
+        <!-- 侧边栏（桌面） / 底部抽屉（移动端） -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h2>📋 我的课表</h2>
+                <button id="import-schedule-btn" class="icon-btn" title="导入课表">📤</button>
+            </div>
+            
+            <div id="today-schedule" class="schedule-list">
+                <div class="empty-state">暂无课程，点击右上角导入</div>
+            </div>
+
+            <div class="filter-section">
+                <h3>🔍 快速筛选</h3>
+                <div class="filter-tags" id="poi-filter">
+                    <button data-type="多媒体教室" class="filter-tag active">🏛️ 教室</button>
+                    <button data-type="办公室" class="filter-tag active">💼 办公室</button>
+                    <button data-type="卫生间" class="filter-tag active">🚻 卫生间</button>
+                    <button data-type="饮水机" class="filter-tag active">💧 饮水机</button>
+                    <button data-type="打印机" class="filter-tag active">🖨️ 打印机</button>
+                    <button data-type="楼梯间" class="filter-tag active">🪜 楼梯</button>
+                    <button data-type="功能性公用自习室" class="filter-tag active">📚 自习室</button>
+                    <button data-type="仓库" class="filter-tag active">📦 仓库</button>
+                </div>
+            </div>
+
+            <div class="search-section">
+                <input type="text" id="search-input" placeholder="搜索房间号/名称 (如 101, 多媒体)" />
+                <div id="search-results" class="search-results"></div>
+            </div>
+
+            <div class="route-preference">
+                <label><input type="radio" name="route-type" value="shortest" checked> 最短路径</label>
+                <label><input type="radio" name="route-type" value="stairs"> 优先楼梯</label>
+            </div>
+        </aside>
+
+        <!-- 地图容器 -->
+        <main id="map-container" class="map-container">
+            <div class="map-controls">
+                <div class="floor-switcher">
+                    <button data-floor="1" class="floor-btn active">1F</button>
+                    <button data-floor="2" class="floor-btn">2F</button>
+                </div>
+                <button id="view-toggle" class="view-toggle">🗺️ 3D</button>
+                <button id="locate-btn" class="locate-btn" title="重置视角">📍</button>
+            </div>
+            <div id="map" class="map"></div>
+        </main>
+
+        <!-- 课表导入模态框 -->
+        <div id="import-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h3>📥 导入课表</h3>
+                <p>粘贴课程文本（包含教室号如 厚德1503、1栋101）</p>
+                <textarea id="schedule-text" rows="6" placeholder="例：周一 8:00-9:40 高等数学 厚德1503"></textarea>
+                <div class="modal-actions">
+                    <button id="parse-schedule-btn" class="btn-primary">解析并导入</button>
+                    <button id="cancel-import" class="btn-secondary">取消</button>
+                </div>
+                <p class="hint">支持 .txt 或粘贴，系统自动提取教室号</p>
+            </div>
+        </div>
+
+        <!-- 路径信息面板 -->
+        <div id="route-panel" class="route-panel" style="display: none;">
+            <div class="route-header">
+                <span>🚶 导航路线</span>
+                <button id="close-route" class="close-btn">✕</button>
+            </div>
+            <div id="route-info" class="route-info"></div>
+        </div>
+
+        <!-- 提醒设置 -->
+        <div class="reminder-settings">
+            <button id="reminder-btn" class="reminder-btn">⏰ 提醒设置</button>
+            <div id="reminder-dropdown" class="reminder-dropdown" style="display: none;">
+                <label>课前提醒：</label>
+                <select id="reminder-time-select">
+                    <option value="5">5分钟</option>
+                    <option value="10">10分钟</option>
+                    <option value="15" selected>15分钟</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- 脚本 -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- 真实数据 -->
+    <script src="data/HD_1F2F.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/mapEngine.js"></script>
+    <script src="js/routing.js"></script>
+    <script src="js/parser.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/notification.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
