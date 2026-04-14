@@ -4,7 +4,7 @@ let activeTypes = ['多媒体教室', '办公室', '卫生间', '饮水机', '�
 // 选点状态
 let startPoint = null;
 let endPoint = null;
-window.pickingMode = null;  // 挂载到 window 以便 mapEngine 访问
+window.pickingMode = null;
 
 // ========== 默认课表 ==========
 const DEFAULT_SCHEDULE = [
@@ -67,13 +67,18 @@ window.setPickedPoint = (room) => {
 };
 
 function bindEvents() {
-    document.getElementById('import-schedule-btn').onclick = () => {
-        document.getElementById('import-modal').style.display = 'flex';
-    };
-    document.getElementById('cancel-import').onclick = () => {
-        document.getElementById('import-modal').style.display = 'none';
-    };
-    document.getElementById('parse-schedule-btn').onclick = () => {
+    // 安全获取元素辅助函数
+    const safeGet = (id) => document.getElementById(id);
+    
+    // 导入课表相关
+    const importBtn = safeGet('import-schedule-btn');
+    if (importBtn) importBtn.onclick = () => document.getElementById('import-modal').style.display = 'flex';
+    
+    const cancelImport = safeGet('cancel-import');
+    if (cancelImport) cancelImport.onclick = () => document.getElementById('import-modal').style.display = 'none';
+    
+    const parseBtn = safeGet('parse-schedule-btn');
+    if (parseBtn) parseBtn.onclick = () => {
         const text = document.getElementById('schedule-text').value;
         const parsed = parseScheduleText(text);
         if (parsed.length > 0) {
@@ -86,15 +91,16 @@ function bindEvents() {
         document.getElementById('schedule-text').value = '';
     };
     
+    // 楼层切换
     document.querySelectorAll('.floor-btn').forEach(btn => {
         btn.onclick = () => filterFloor(parseInt(btn.dataset.floor));
     });
     
-    document.getElementById('view-toggle').onclick = toggleViewMode;
-    document.getElementById('locate-btn').onclick = () => {
-        map.setView([900, 550], 0);
-    };
+    // 移除原 view-toggle 绑定，改用已存在的 btn-3d 按钮（已在 HTML 中绑定 toggle3D）
+    // 原 locate-btn 不存在，改为地图双击重置视角
+    map.on('dblclick', () => map.setView([900, 550], 0));
     
+    // POI 筛选标签
     document.querySelectorAll('.filter-tag').forEach(tag => {
         tag.onclick = (e) => {
             tag.classList.toggle('active');
@@ -103,60 +109,68 @@ function bindEvents() {
         };
     });
     
-    document.getElementById('search-input').oninput = (e) => {
+    // 搜索功能
+    const searchInput = safeGet('search-input');
+    if (searchInput) searchInput.oninput = (e) => {
         const val = e.target.value.toLowerCase();
         const results = allRooms.filter(r => 
             r.name.toLowerCase().includes(val) || r.room_id.toLowerCase().includes(val)
         ).slice(0, 8);
-        const resDiv = document.getElementById('search-results');
-        resDiv.innerHTML = results.map(r => 
-            `<div class="search-result-item" data-id="${r.room_id}">${r.name} (${r.type})</div>`
-        ).join('');
-        document.querySelectorAll('.search-result-item').forEach(el => {
-            el.onclick = () => {
-                flyToRoom(el.dataset.id);
-                resDiv.innerHTML = '';
-            };
-        });
+        const resDiv = safeGet('search-results');
+        if (resDiv) {
+            resDiv.innerHTML = results.map(r => 
+                `<div class="search-result-item" data-id="${r.room_id}">${r.name} (${r.type})</div>`
+            ).join('');
+            document.querySelectorAll('.search-result-item').forEach(el => {
+                el.onclick = () => {
+                    flyToRoom(el.dataset.id);
+                    resDiv.innerHTML = '';
+                };
+            });
+        }
     };
     
-    document.getElementById('close-guide').onclick = () => {
-        document.getElementById('guide-modal').style.display = 'none';
+    // 引导弹窗关闭
+    const closeGuide = safeGet('close-guide');
+    if (closeGuide) closeGuide.onclick = () => document.getElementById('guide-modal').style.display = 'none';
+    
+    // 提醒设置
+    const reminderBtn = safeGet('reminder-btn');
+    if (reminderBtn) reminderBtn.onclick = () => {
+        const dd = safeGet('reminder-dropdown');
+        if (dd) dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
     };
     
-    document.getElementById('reminder-btn').onclick = () => {
-        const dd = document.getElementById('reminder-dropdown');
-        dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
-    };
-    document.getElementById('reminder-time-select').onchange = (e) => {
-        setReminderMinutes(parseInt(e.target.value));
-    };
+    const reminderSelect = safeGet('reminder-time-select');
+    if (reminderSelect) reminderSelect.onchange = (e) => setReminderMinutes(parseInt(e.target.value));
     
-    document.getElementById('close-route').onclick = () => {
+    // 关闭路径面板
+    const closeRoute = safeGet('close-route');
+    if (closeRoute) closeRoute.onclick = () => {
         document.getElementById('route-panel').style.display = 'none';
         clearRoute();
     };
 
-    // ========== 选点导航事件 ==========
-    const pickStartBtn = document.getElementById('pick-start-btn');
-    const pickEndBtn = document.getElementById('pick-end-btn');
-    const navStartBtn = document.getElementById('start-navigation-btn');
-
-    pickStartBtn.onclick = () => {
+    // 选点导航事件
+    const pickStart = safeGet('pick-start-btn');
+    const pickEnd = safeGet('pick-end-btn');
+    const navStart = safeGet('start-navigation-btn');
+    
+    if (pickStart) pickStart.onclick = () => {
         window.pickingMode = 'start';
-        pickStartBtn.classList.add('active');
-        pickEndBtn.classList.remove('active');
+        pickStart.classList.add('active');
+        if (pickEnd) pickEnd.classList.remove('active');
         map.getContainer().style.cursor = 'crosshair';
     };
-
-    pickEndBtn.onclick = () => {
+    
+    if (pickEnd) pickEnd.onclick = () => {
         window.pickingMode = 'end';
-        pickEndBtn.classList.add('active');
-        pickStartBtn.classList.remove('active');
+        pickEnd.classList.add('active');
+        if (pickStart) pickStart.classList.remove('active');
         map.getContainer().style.cursor = 'crosshair';
     };
-
-    navStartBtn.onclick = () => {
+    
+    if (navStart) navStart.onclick = () => {
         if (!startPoint || !endPoint) return;
         
         const path = findPath(startPoint.roomId, endPoint.roomId);
@@ -225,3 +239,22 @@ function renderScheduleList() {
         };
     });
 }
+
+// 全局导航跳转（供通知弹窗调用）
+window.navigateToRoom = (targetRoomId) => {
+    const startRoomId = '1-stair1'; 
+    const path = findPath(startRoomId, targetRoomId);
+    
+    if (path && path.length > 0) {
+        drawRoute(path);
+        const targetRoom = allRooms.find(r => r.room_id === targetRoomId);
+        if (targetRoom) {
+            filterFloor(targetRoom.floor_number);
+            map.setView([targetRoom.center[1], targetRoom.center[0]], 1.2);
+            document.getElementById('route-panel').style.display = 'block';
+            document.getElementById('route-info').innerHTML = `前往 ${targetRoom.name}`;
+        }
+    } else {
+        alert('路径规划失败，请确保地图数据存在。');
+    }
+};

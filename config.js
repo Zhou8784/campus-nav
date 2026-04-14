@@ -1,12 +1,12 @@
 window.APP_CONFIG = {
     initialView: {
-        center: [500, 700],  // 根据数据范围调整
+        center: [900, 550],
         zoom: 0.8,
         pitch: 0,
         bearing: 0
     },
-    style: 'https://demotiles.maplibre.org/style.json',
     defaultReminder: 15,
+    style: 'https://demotiles.maplibre.org/style.json',
     poiColors: {
         '多媒体教室': '#3b82f6',
         '办公室': '#f59e0b',
