@@ -49,7 +49,6 @@ window.onload = () => {
     requestNotificationPermission();
 };
 
-// 选点回调
 window.setPickedPoint = (room) => {
     if (window.pickingMode === 'start') {
         startPoint = room;
@@ -67,18 +66,12 @@ window.setPickedPoint = (room) => {
 };
 
 function bindEvents() {
-    // 安全获取元素辅助函数
     const safeGet = (id) => document.getElementById(id);
     
-    // 导入课表相关
-    const importBtn = safeGet('import-schedule-btn');
-    if (importBtn) importBtn.onclick = () => document.getElementById('import-modal').style.display = 'flex';
-    
-    const cancelImport = safeGet('cancel-import');
-    if (cancelImport) cancelImport.onclick = () => document.getElementById('import-modal').style.display = 'none';
-    
-    const parseBtn = safeGet('parse-schedule-btn');
-    if (parseBtn) parseBtn.onclick = () => {
+    // 导入课表
+    safeGet('import-schedule-btn').onclick = () => document.getElementById('import-modal').style.display = 'flex';
+    safeGet('cancel-import').onclick = () => document.getElementById('import-modal').style.display = 'none';
+    safeGet('parse-schedule-btn').onclick = () => {
         const text = document.getElementById('schedule-text').value;
         const parsed = parseScheduleText(text);
         if (parsed.length > 0) {
@@ -96,83 +89,82 @@ function bindEvents() {
         btn.onclick = () => filterFloor(parseInt(btn.dataset.floor));
     });
     
-    // 移除原 view-toggle 绑定，改用已存在的 btn-3d 按钮（已在 HTML 中绑定 toggle3D）
-    // 原 locate-btn 不存在，改为地图双击重置视角
+    // 双击地图重置视角（替代原 locate-btn）
     map.on('dblclick', () => map.setView([900, 550], 0));
     
-    // POI 筛选标签
+    // POI 筛选
     document.querySelectorAll('.filter-tag').forEach(tag => {
-        tag.onclick = (e) => {
+        tag.onclick = () => {
             tag.classList.toggle('active');
             activeTypes = [...document.querySelectorAll('.filter-tag.active')].map(t => t.dataset.type);
             filterPoiByTypes(activeTypes);
         };
     });
     
-    // 搜索功能
+    // 搜索
     const searchInput = safeGet('search-input');
-    if (searchInput) searchInput.oninput = (e) => {
+    searchInput.oninput = (e) => {
         const val = e.target.value.toLowerCase();
         const results = allRooms.filter(r => 
             r.name.toLowerCase().includes(val) || r.room_id.toLowerCase().includes(val)
         ).slice(0, 8);
         const resDiv = safeGet('search-results');
-        if (resDiv) {
-            resDiv.innerHTML = results.map(r => 
-                `<div class="search-result-item" data-id="${r.room_id}">${r.name} (${r.type})</div>`
-            ).join('');
-            document.querySelectorAll('.search-result-item').forEach(el => {
-                el.onclick = () => {
-                    flyToRoom(el.dataset.id);
+        resDiv.innerHTML = results.map(r => 
+            `<div class="search-result-item" data-id="${r.room_id}">${r.name} (${r.type})</div>`
+        ).join('');
+        document.querySelectorAll('.search-result-item').forEach(el => {
+            el.onclick = () => {
+                const room = allRooms.find(r => r.room_id === el.dataset.id);
+                if (room) {
+                    // 默认起点设为 1栋楼梯
+                    const defaultStart = allRooms.find(r => r.room_id === '1-stair1') || allRooms[0];
+                    startPoint = { roomId: defaultStart.room_id, name: defaultStart.name, center: defaultStart.center };
+                    endPoint = { roomId: room.room_id, name: room.name, center: room.center };
+                    document.getElementById('start-point-label').textContent = startPoint.name;
+                    document.getElementById('end-point-label').textContent = endPoint.name;
+                    document.getElementById('start-navigation-btn').disabled = false;
+                    flyToRoom(room.room_id);
                     resDiv.innerHTML = '';
-                };
-            });
-        }
+                }
+            };
+        });
     };
     
-    // 引导弹窗关闭
-    const closeGuide = safeGet('close-guide');
-    if (closeGuide) closeGuide.onclick = () => document.getElementById('guide-modal').style.display = 'none';
+    // 引导关闭
+    safeGet('close-guide').onclick = () => document.getElementById('guide-modal').style.display = 'none';
     
     // 提醒设置
-    const reminderBtn = safeGet('reminder-btn');
-    if (reminderBtn) reminderBtn.onclick = () => {
+    safeGet('reminder-btn').onclick = () => {
         const dd = safeGet('reminder-dropdown');
-        if (dd) dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+        dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
     };
-    
-    const reminderSelect = safeGet('reminder-time-select');
-    if (reminderSelect) reminderSelect.onchange = (e) => setReminderMinutes(parseInt(e.target.value));
+    safeGet('reminder-time-select').onchange = (e) => setReminderMinutes(parseInt(e.target.value));
     
     // 关闭路径面板
-    const closeRoute = safeGet('close-route');
-    if (closeRoute) closeRoute.onclick = () => {
+    safeGet('close-route').onclick = () => {
         document.getElementById('route-panel').style.display = 'none';
         clearRoute();
     };
 
-    // 选点导航事件
+    // 选点导航
     const pickStart = safeGet('pick-start-btn');
     const pickEnd = safeGet('pick-end-btn');
     const navStart = safeGet('start-navigation-btn');
     
-    if (pickStart) pickStart.onclick = () => {
+    pickStart.onclick = () => {
         window.pickingMode = 'start';
         pickStart.classList.add('active');
-        if (pickEnd) pickEnd.classList.remove('active');
+        pickEnd.classList.remove('active');
         map.getContainer().style.cursor = 'crosshair';
     };
-    
-    if (pickEnd) pickEnd.onclick = () => {
+    pickEnd.onclick = () => {
         window.pickingMode = 'end';
         pickEnd.classList.add('active');
-        if (pickStart) pickStart.classList.remove('active');
+        pickStart.classList.remove('active');
         map.getContainer().style.cursor = 'crosshair';
     };
-    
-    if (navStart) navStart.onclick = () => {
+    navStart.onclick = () => {
         if (!startPoint || !endPoint) return;
-        
         const path = findPath(startPoint.roomId, endPoint.roomId);
         if (path && path.length > 0) {
             drawRoute(path);
@@ -184,8 +176,23 @@ function bindEvents() {
             document.getElementById('route-panel').style.display = 'block';
             document.getElementById('route-info').innerHTML = `从 ${startPoint.name} 到 ${endPoint.name}`;
         } else {
-            alert('路径规划失败，请确保起点和终点在同一楼层或通过楼梯可达。');
+            alert('路径规划失败');
         }
+    };
+    
+    // 清除选点
+    safeGet('clear-points-btn').onclick = () => {
+        startPoint = null;
+        endPoint = null;
+        document.getElementById('start-point-label').textContent = '未选择';
+        document.getElementById('end-point-label').textContent = '未选择';
+        document.getElementById('start-navigation-btn').disabled = true;
+        clearRoute();
+        document.getElementById('route-panel').style.display = 'none';
+        pickStart.classList.remove('active');
+        pickEnd.classList.remove('active');
+        map.getContainer().style.cursor = '';
+        window.pickingMode = null;
     };
 }
 
@@ -211,19 +218,15 @@ function renderScheduleList() {
         btn.onclick = () => {
             const roomName = btn.dataset.room;
             let targetRoomId = btn.dataset.roomid;
-            
             if (!targetRoomId || targetRoomId === 'undefined') {
                 targetRoomId = mapToRoomId(roomName);
             }
-            
             if (!targetRoomId) {
                 alert(`未找到教室: ${roomName}`);
                 return;
             }
-            
             const startRoomId = '1-stair1';
             const path = findPath(startRoomId, targetRoomId);
-            
             if (path && path.length > 0) {
                 drawRoute(path);
                 const targetRoom = allRooms.find(r => r.room_id === targetRoomId);
@@ -240,11 +243,9 @@ function renderScheduleList() {
     });
 }
 
-// 全局导航跳转（供通知弹窗调用）
 window.navigateToRoom = (targetRoomId) => {
-    const startRoomId = '1-stair1'; 
+    const startRoomId = '1-stair1';
     const path = findPath(startRoomId, targetRoomId);
-    
     if (path && path.length > 0) {
         drawRoute(path);
         const targetRoom = allRooms.find(r => r.room_id === targetRoomId);
@@ -255,6 +256,6 @@ window.navigateToRoom = (targetRoomId) => {
             document.getElementById('route-info').innerHTML = `前往 ${targetRoom.name}`;
         }
     } else {
-        alert('路径规划失败，请确保地图数据存在。');
+        alert('路径规划失败');
     }
 };
