@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/mobile.css" media="screen and (max-width: 768px)">
 </head>
@@ -52,7 +53,6 @@
                     <button data-type="楼梯间" class="filter-tag active">🪜 楼梯</button>
                     <button data-type="功能性公用自习室" class="filter-tag active">📚 自习室</button>
                     <button data-type="仓库" class="filter-tag active">📦 仓库</button>
-                    <button data-type="垃圾桶" class="filter-tag active">🗑️ 垃圾桶</button>
                 </div>
             </div>
 
@@ -68,7 +68,7 @@
 
             <div class="point-picker">
                 <div class="picker-row">
-                    <button id="pick-start-btn" class="picker-btn start-btn">📍当前定位</button>
+                    <button id="pick-start-btn" class="picker-btn start-btn">📍 选择起点</button>
                     <span id="start-point-label" class="point-label">未选择</span>
                 </div>
                 <div class="picker-row">
@@ -76,23 +76,26 @@
                     <span id="end-point-label" class="point-label">未选择</span>
                 </div>
                 <button id="start-navigation-btn" class="nav-start-btn" disabled>🚀 开始导航</button>
-                <button id="clear-points-btn" style="margin-top:8px; padding:8px 16px; border-radius:30px; border:none; background:#e2e8f0; font-size:0.9rem; cursor:pointer;">🗑️ 清除选点</button>
             </div>
         </aside>
 
-        <main id="map-container" class="map-container">
-            <div class="map-controls">
+        <main id="map-container" class="map-container" style="position: relative; width: 100%; height: 100vh;">
+            <div class="map-controls" style="position: absolute; z-index: 1000; top: 10px; right: 10px;">
                 <div class="floor-switcher">
                     <button data-floor="1" class="floor-btn active">1F</button>
                     <button data-floor="2" class="floor-btn">2F</button>
-                </div> <div class="absolute top-20 right-4 z-[1000] flex flex-col gap-2">
+                </div>
+                
+                <div class="mt-4 flex flex-col gap-2">
                     <button onclick="toggle3D()" id="btn-3d" 
                             class="w-10 h-10 bg-white rounded-lg shadow-md border flex items-center justify-center text-primary hover:bg-slate-50 transition-all" 
                             title="切换 2D/3D 视角">
                         <span class="material-symbols-outlined">layers</span>
                     </button>
                 </div>
-            </div> <div id="map" class="map"></div>
+            </div>
+            
+            <div id="map" class="map" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1;"></div>
         </main>
 
         <div id="import-modal" class="modal" style="display: none;">
@@ -106,16 +109,7 @@
                 </div>
                 <p class="hint">支持 .txt 或粘贴，系统自动提取教室号</p>
             </div>
-        </div><!-- 房间列表弹窗（用于筛选标签） -->
-<div id="room-list-modal" class="modal" style="display: none;">
-    <div class="modal-content" style="max-width: 400px; max-height: 70vh; overflow-y: auto;">
-        <h3 id="room-list-title">房间列表</h3>
-        <div id="room-list-container" class="room-list-container"></div>
-        <div class="modal-actions">
-            <button id="close-room-list" class="btn-secondary">关闭</button>
         </div>
-    </div>
-</div>
 
         <div id="route-panel" class="route-panel" style="display: none;">
             <div class="route-header">
@@ -138,6 +132,41 @@
         </div>
     </div>
 
-   </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script src="data/HD_1F2F.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/parser.js"></script>
+    <script src="js/notification.js"></script> 
+    <script src="js/routing.js"></script>
+    <script src="js/mapEngine.js"></script>
+    <script src="js/main.js"></script>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', function() {
+            if (typeof initMap === 'function') {
+                initMap();
+            }
+
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                if(splash) {
+                    splash.style.opacity = '0';
+                    setTimeout(() => splash.style.display = 'none', 500);
+                }
+                const guideModal = document.getElementById('guide-modal');
+                if(guideModal) guideModal.style.display = 'flex';
+            }, 1000);
+
+            const closeBtn = document.getElementById('close-guide');
+            if(closeBtn) {
+                closeBtn.onclick = () => {
+                    document.getElementById('guide-modal').style.display = 'none';
+                }
+            }
+        });
+    </script>
 </body>
 </html>
