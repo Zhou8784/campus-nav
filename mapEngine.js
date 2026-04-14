@@ -161,11 +161,18 @@ function getStairCenters(floor) {
 }
 
 function drawRoute(pathCoords) {
-    if (window.routeLine) map.removeLayer(window.routeLine);
-    if (pathCoords && pathCoords.length > 1) {
-        const latlngs = pathCoords.map(p => [p[1], p[0]]);
-        window.routeLine = L.polyline(latlngs, { color: '#e11d48', weight: 4, dashArray: '5, 5' }).addTo(map);
+    if (window.currentRouteLine) {
+        map.removeLayer(window.currentRouteLine);
     }
+    
+    // 将坐标从 [x, y] 转换为 Leaflet 的 [y, x]
+    const latLngs = pathCoords.map(p => [p[1], p[0]]);
+    
+    window.currentRouteLine = L.polyline(latLngs, {
+        color: '#003f87',
+        weight: 5,
+        className: 'nav-path-animate' // 应用动画类
+    }).addTo(map);
 }
 
 function clearRoute() {

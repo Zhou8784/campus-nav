@@ -46,24 +46,18 @@ function parseScheduleText(text) {
     return schedule;
 }
 
+// 优化 parser.js 中的 mapToRoomId
 function mapToRoomId(roomName) {
     if (!roomName) return null;
     
-    // 1. 直接匹配 room_id
-    const directMatch = allRooms.find(r => r.room_id === roomName);
-    if (directMatch) return directMatch.room_id;
+    // 1. 标准化输入：统一将 "-" 替换成空，去除空格
+    const cleanName = roomName.replace(/[-楼栋]/g, ''); 
+
+    // 2. 尝试从 allRooms 里的 room_id 或 name 进行模糊匹配
+    const match = allRooms.find(r => 
+        r.room_id.replace('-', '') === cleanName || 
+        r.name.includes(roomName)
+    );
     
-    // 2. 处理 "3栋2楼203" -> "3-203"
-    const buildingRoomMatch = roomName.match(/(\d+)栋(\d+)楼(\d+)/);
-    if (buildingRoomMatch) {
-        const candidateId = `${buildingRoomMatch[1]}-${buildingRoomMatch[3]}`;
-        const candidate = allRooms.find(r => r.room_id === candidateId);
-        if (candidate) return candidate.room_id;
-    }
-    
-    // 3. 模糊匹配
-    const nameMatch = allRooms.find(r => r.name.includes(roomName) || roomName.includes(r.name));
-    if (nameMatch) return nameMatch.room_id;
-    
-    return null;
+    return match ? match.room_id : null;
 }

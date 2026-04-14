@@ -68,24 +68,18 @@ function findPath(startRoomId, endRoomId) {
     return mergePathSegments([segment1, segment2, segment3]);
 }
 
-// 生成两点间的直角折线（先走 X 方向，再走 Y 方向）
+// 优化 routing.js 中的 generateOrthogonalPath 函数
 function generateOrthogonalPath(p1, p2) {
     const [x1, y1] = p1;
     const [x2, y2] = p2;
     
-    // 如果已经在同一水平或垂直线上，直接连接
-    if (Math.abs(x1 - x2) < 0.1 || Math.abs(y1 - y2) < 0.1) {
-        return [p1, p2];
+    // 增加一个微小的偏置，避免路径完全贴着墙走
+    // 选择先水平还是先垂直：根据距离长短判断，通常先走长边更符合行走直觉
+    if (Math.abs(x1 - x2) > Math.abs(y1 - y2)) {
+        return [p1, [x2, y1], p2]; // 先水平
+    } else {
+        return [p1, [x1, y2], p2]; // 先垂直
     }
-    
-    // 选择转折点：取 p1 的 X 和 p2 的 Y，或者取 p1 的 Y 和 p2 的 X
-    // 这里随机选择一种，也可以根据起点终点位置智能选择
-    const turnPoint1 = [x1, y2];
-    const turnPoint2 = [x2, y1];
-    
-    // 简单判断哪种转折点更合理（避免穿过太多房间，但无数据只能估算）
-    // 这里固定使用 [x1, y2]（先水平后垂直）
-    return [p1, turnPoint1, p2];
 }
 
 // 合并多段路径，去除重复的相邻点
