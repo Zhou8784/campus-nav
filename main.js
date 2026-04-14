@@ -1,5 +1,5 @@
 let currentSchedule = [];
-let activeTypes = ['多媒体教室', '办公室', '卫生间', '饮水机', '打印机', '楼梯间', '功能性公用自习室', '仓库'];
+let activeTypes = ['多媒体教室', '办公室', '卫生间', '饮水机', '打印机', '楼梯间', '功能性公用自习室', '仓库', '垃圾桶'];
 
 // 选点状态
 let startPoint = null;
@@ -211,7 +211,14 @@ function bindEvents() {
 
 // 显示指定类型的房间列表弹窗
 function showRoomListModal(type) {
-    const rooms = allRooms.filter(r => r.type === type);
+    let rooms;
+    // 特殊处理：办公室类型匹配所有包含“办公室”的房间
+    if (type === '办公室') {
+        rooms = allRooms.filter(r => r.type.includes('办公室'));
+    } else {
+        rooms = allRooms.filter(r => r.type === type);
+    }
+    
     if (rooms.length === 0) {
         alert(`没有找到类型为“${type}”的房间`);
         return;
@@ -248,7 +255,6 @@ function showRoomListModal(type) {
             const roomId = el.dataset.roomid;
             const room = allRooms.find(r => r.room_id === roomId);
             if (room) {
-                // 导航到该房间（默认起点为 1-stair1）
                 const defaultStart = allRooms.find(r => r.room_id === '1-stair1') || allRooms[0];
                 startPoint = { roomId: defaultStart.room_id, name: defaultStart.name, center: defaultStart.center };
                 endPoint = { roomId: room.room_id, name: room.name, center: room.center };
@@ -256,7 +262,6 @@ function showRoomListModal(type) {
                 document.getElementById('end-point-label').textContent = endPoint.name;
                 document.getElementById('start-navigation-btn').disabled = false;
                 
-                // 直接开始导航
                 const path = findPath(startPoint.roomId, endPoint.roomId);
                 if (path && path.length > 0) {
                     drawRoute(path);
