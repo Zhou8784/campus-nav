@@ -293,3 +293,39 @@ body { overflow: hidden; background: #f0f4f8; }
     stroke: #f57f17 !important;
     stroke-width: 3px !important;
 }
+/* 房间列表弹窗 */
+.room-list-container {
+    margin: 15px 0;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+.room-list-floor-group {
+    margin-bottom: 15px;
+}
+.room-list-floor-title {
+    font-weight: 700;
+    color: #2a5298;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+.room-list-item {
+    padding: 10px 16px;
+    margin: 4px 0;
+    background: #f8faff;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+}
+.room-list-item:hover {
+    background: #e0e7ff;
+}
+.room-list-item .nav-badge {
+    background: #2a5298;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+}

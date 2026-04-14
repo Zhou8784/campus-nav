@@ -105,7 +105,16 @@
                 </div>
                 <p class="hint">支持 .txt 或粘贴，系统自动提取教室号</p>
             </div>
+        </div><!-- 房间列表弹窗（用于筛选标签） -->
+<div id="room-list-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 400px; max-height: 70vh; overflow-y: auto;">
+        <h3 id="room-list-title">房间列表</h3>
+        <div id="room-list-container" class="room-list-container"></div>
+        <div class="modal-actions">
+            <button id="close-room-list" class="btn-secondary">关闭</button>
         </div>
+    </div>
+</div>
 
         <div id="route-panel" class="route-panel" style="display: none;">
             <div class="route-header">

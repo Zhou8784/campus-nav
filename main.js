@@ -44,7 +44,7 @@ window.onload = () => {
                 localStorage.setItem('guide_shown', 'true');
             }
         }, 500);
-    }, 2000);
+    }, 800);
     
     requestNotificationPermission();
 };
@@ -89,19 +89,18 @@ function bindEvents() {
         btn.onclick = () => filterFloor(parseInt(btn.dataset.floor));
     });
     
-    // 双击地图重置视角（替代原 locate-btn）
+    // 双击地图重置视角
     map.on('dblclick', () => map.setView([900, 550], 0));
     
-    // POI 筛选
+    // ===== 筛选标签：改为弹窗显示列表 =====
     document.querySelectorAll('.filter-tag').forEach(tag => {
         tag.onclick = () => {
-            tag.classList.toggle('active');
-            activeTypes = [...document.querySelectorAll('.filter-tag.active')].map(t => t.dataset.type);
-            filterPoiByTypes(activeTypes);
+            const type = tag.dataset.type;
+            showRoomListModal(type);
         };
     });
     
-    // 搜索
+    // ===== 搜索功能：输入时显示结果，点击结果定位并高亮同类 POI =====
     const searchInput = safeGet('search-input');
     searchInput.oninput = (e) => {
         const val = e.target.value.toLowerCase();
@@ -110,25 +109,34 @@ function bindEvents() {
         ).slice(0, 8);
         const resDiv = safeGet('search-results');
         resDiv.innerHTML = results.map(r => 
-            `<div class="search-result-item" data-id="${r.room_id}">${r.name} (${r.type})</div>`
+            `<div class="search-result-item" data-id="${r.room_id}" data-type="${r.type}">${r.name} (${r.type})</div>`
         ).join('');
         document.querySelectorAll('.search-result-item').forEach(el => {
             el.onclick = () => {
                 const room = allRooms.find(r => r.room_id === el.dataset.id);
                 if (room) {
-                    // 默认起点设为 1栋楼梯
-                    const defaultStart = allRooms.find(r => r.room_id === '1-stair1') || allRooms[0];
-                    startPoint = { roomId: defaultStart.room_id, name: defaultStart.name, center: defaultStart.center };
-                    endPoint = { roomId: room.room_id, name: room.name, center: room.center };
-                    document.getElementById('start-point-label').textContent = startPoint.name;
-                    document.getElementById('end-point-label').textContent = endPoint.name;
-                    document.getElementById('start-navigation-btn').disabled = false;
+                    // 定位并高亮
                     flyToRoom(room.room_id);
+                    // 地图上只显示该类型房间（高亮同类 POI）
+                    const targetType = room.type;
+                    filterPoiByTypes([targetType]);
+                    // 同时将筛选标签的激活状态同步
+                    document.querySelectorAll('.filter-tag').forEach(t => {
+                        t.classList.toggle('active', t.dataset.type === targetType);
+                    });
+                    activeTypes = [targetType];
                     resDiv.innerHTML = '';
                 }
             };
         });
     };
+    
+    // 点击搜索框外部关闭结果列表（可选）
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-section')) {
+            safeGet('search-results').innerHTML = '';
+        }
+    });
     
     // 引导关闭
     safeGet('close-guide').onclick = () => document.getElementById('guide-modal').style.display = 'none';
@@ -194,6 +202,75 @@ function bindEvents() {
         map.getContainer().style.cursor = '';
         window.pickingMode = null;
     };
+    
+    // 关闭房间列表弹窗
+    safeGet('close-room-list').onclick = () => {
+        document.getElementById('room-list-modal').style.display = 'none';
+    };
+}
+
+// 显示指定类型的房间列表弹窗
+function showRoomListModal(type) {
+    const rooms = allRooms.filter(r => r.type === type);
+    if (rooms.length === 0) {
+        alert(`没有找到类型为“${type}”的房间`);
+        return;
+    }
+    
+    // 按楼层分组
+    const byFloor = {};
+    rooms.forEach(r => {
+        const f = r.floor_number;
+        if (!byFloor[f]) byFloor[f] = [];
+        byFloor[f].push(r);
+    });
+    
+    const floors = Object.keys(byFloor).sort((a,b) => a - b);
+    let html = '';
+    floors.forEach(floor => {
+        html += `<div class="room-list-floor-group">`;
+        html += `<div class="room-list-floor-title">${floor}F</div>`;
+        byFloor[floor].forEach(room => {
+            html += `<div class="room-list-item" data-roomid="${room.room_id}">
+                        <span>${room.name}</span>
+                        <span class="nav-badge">导航</span>
+                    </div>`;
+        });
+        html += `</div>`;
+    });
+    
+    document.getElementById('room-list-title').textContent = `${type} 列表 (共 ${rooms.length} 间)`;
+    document.getElementById('room-list-container').innerHTML = html;
+    
+    // 绑定列表项点击事件
+    document.querySelectorAll('.room-list-item').forEach(el => {
+        el.onclick = () => {
+            const roomId = el.dataset.roomid;
+            const room = allRooms.find(r => r.room_id === roomId);
+            if (room) {
+                // 导航到该房间（默认起点为 1-stair1）
+                const defaultStart = allRooms.find(r => r.room_id === '1-stair1') || allRooms[0];
+                startPoint = { roomId: defaultStart.room_id, name: defaultStart.name, center: defaultStart.center };
+                endPoint = { roomId: room.room_id, name: room.name, center: room.center };
+                document.getElementById('start-point-label').textContent = startPoint.name;
+                document.getElementById('end-point-label').textContent = endPoint.name;
+                document.getElementById('start-navigation-btn').disabled = false;
+                
+                // 直接开始导航
+                const path = findPath(startPoint.roomId, endPoint.roomId);
+                if (path && path.length > 0) {
+                    drawRoute(path);
+                    filterFloor(room.floor_number);
+                    map.setView([room.center[1], room.center[0]], 1.2);
+                    document.getElementById('route-panel').style.display = 'block';
+                    document.getElementById('route-info').innerHTML = `前往 ${room.name}`;
+                }
+                document.getElementById('room-list-modal').style.display = 'none';
+            }
+        };
+    });
+    
+    document.getElementById('room-list-modal').style.display = 'flex';
 }
 
 function renderScheduleList() {
