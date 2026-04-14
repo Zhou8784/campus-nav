@@ -36,11 +36,13 @@ window.onload = () => {
     bindEvents();
     
     setTimeout(() => {
-        document.getElementById('splash-screen').style.opacity = '0';
+        const splash = document.getElementById('splash-screen');
+        if (splash) splash.style.opacity = '0';
         setTimeout(() => {
-            document.getElementById('splash-screen').style.display = 'none';
+            if (splash) splash.style.display = 'none';
             if (!localStorage.getItem('guide_shown')) {
-                document.getElementById('guide-modal').style.display = 'flex';
+                const guide = document.getElementById('guide-modal');
+                if (guide) guide.style.display = 'flex';
                 localStorage.setItem('guide_shown', 'true');
             }
         }, 500);
@@ -52,37 +54,50 @@ window.onload = () => {
 window.setPickedPoint = (room) => {
     if (window.pickingMode === 'start') {
         startPoint = room;
-        document.getElementById('start-point-label').textContent = room.name;
-        document.getElementById('pick-start-btn').classList.remove('active');
+        const startLabel = document.getElementById('start-point-label');
+        if (startLabel) startLabel.textContent = room.name;
+        const startBtn = document.getElementById('pick-start-btn');
+        if (startBtn) startBtn.classList.remove('active');
     } else if (window.pickingMode === 'end') {
         endPoint = room;
-        document.getElementById('end-point-label').textContent = room.name;
-        document.getElementById('pick-end-btn').classList.remove('active');
+        const endLabel = document.getElementById('end-point-label');
+        if (endLabel) endLabel.textContent = room.name;
+        const endBtn = document.getElementById('pick-end-btn');
+        if (endBtn) endBtn.classList.remove('active');
     }
     window.pickingMode = null;
-    map.getContainer().style.cursor = '';
+    if (map && map.getContainer) map.getContainer().style.cursor = '';
     
-    document.getElementById('start-navigation-btn').disabled = !(startPoint && endPoint);
+    const navBtn = document.getElementById('start-navigation-btn');
+    if (navBtn) navBtn.disabled = !(startPoint && endPoint);
 };
 
 function bindEvents() {
-    const safeGet = (id) => document.getElementById(id);
-    
-    // 导入课表
-    safeGet('import-schedule-btn').onclick = () => document.getElementById('import-modal').style.display = 'flex';
-    safeGet('cancel-import').onclick = () => document.getElementById('import-modal').style.display = 'none';
-    safeGet('parse-schedule-btn').onclick = () => {
-        const text = document.getElementById('schedule-text').value;
-        const parsed = parseScheduleText(text);
-        if (parsed.length > 0) {
-            currentSchedule = parsed;
-            saveSchedule(currentSchedule);
-            renderScheduleList();
-            scheduleReminders(currentSchedule);
-        }
-        document.getElementById('import-modal').style.display = 'none';
-        document.getElementById('schedule-text').value = '';
-    };
+    // 安全获取元素（带判空）
+    const getEl = (id) => document.getElementById(id);
+
+    // 导入课表相关
+    const importBtn = getEl('import-schedule-btn');
+    const importModal = getEl('import-modal');
+    const cancelImport = getEl('cancel-import');
+    const parseBtn = getEl('parse-schedule-btn');
+    if (importBtn) importBtn.onclick = () => { if (importModal) importModal.style.display = 'flex'; };
+    if (cancelImport) cancelImport.onclick = () => { if (importModal) importModal.style.display = 'none'; };
+    if (parseBtn) {
+        parseBtn.onclick = () => {
+            const textarea = getEl('schedule-text');
+            const text = textarea ? textarea.value : '';
+            const parsed = parseScheduleText(text);
+            if (parsed.length > 0) {
+                currentSchedule = parsed;
+                saveSchedule(currentSchedule);
+                renderScheduleList();
+                scheduleReminders(currentSchedule);
+            }
+            if (importModal) importModal.style.display = 'none';
+            if (textarea) textarea.value = '';
+        };
+    }
     
     // 楼层切换
     document.querySelectorAll('.floor-btn').forEach(btn => {
@@ -90,9 +105,11 @@ function bindEvents() {
     });
     
     // 双击地图重置视角
-    map.on('dblclick', () => map.setView([900, 550], 0));
+    if (map) {
+        map.on('dblclick', () => map.setView([900, 550], 0));
+    }
     
-    // ===== 筛选标签：改为弹窗显示列表 =====
+    // 筛选标签点击
     document.querySelectorAll('.filter-tag').forEach(tag => {
         tag.onclick = () => {
             const type = tag.dataset.type;
@@ -100,119 +117,149 @@ function bindEvents() {
         };
     });
     
-    // ===== 搜索功能：输入时显示结果，点击结果定位并高亮同类 POI =====
-    const searchInput = safeGet('search-input');
-    searchInput.oninput = (e) => {
-        const val = e.target.value.toLowerCase();
-        const results = allRooms.filter(r => 
-            r.name.toLowerCase().includes(val) || r.room_id.toLowerCase().includes(val)
-        ).slice(0, 8);
-        const resDiv = safeGet('search-results');
-        resDiv.innerHTML = results.map(r => 
-            `<div class="search-result-item" data-id="${r.room_id}" data-type="${r.type}">${r.name} (${r.type})</div>`
-        ).join('');
-        document.querySelectorAll('.search-result-item').forEach(el => {
-            el.onclick = () => {
-                const room = allRooms.find(r => r.room_id === el.dataset.id);
-                if (room) {
-                    // 定位并高亮
-                    flyToRoom(room.room_id);
-                    // 地图上只显示该类型房间（高亮同类 POI）
-                    const targetType = room.type;
-                    filterPoiByTypes([targetType]);
-                    // 同时将筛选标签的激活状态同步
-                    document.querySelectorAll('.filter-tag').forEach(t => {
-                        t.classList.toggle('active', t.dataset.type === targetType);
-                    });
-                    activeTypes = [targetType];
-                    resDiv.innerHTML = '';
-                }
-            };
-        });
-    };
+    // 搜索功能
+    const searchInput = getEl('search-input');
+    if (searchInput) {
+        searchInput.oninput = (e) => {
+            const val = e.target.value.toLowerCase();
+            const results = allRooms.filter(r => 
+                r.name.toLowerCase().includes(val) || r.room_id.toLowerCase().includes(val)
+            ).slice(0, 8);
+            const resDiv = getEl('search-results');
+            if (!resDiv) return;
+            resDiv.innerHTML = results.map(r => 
+                `<div class="search-result-item" data-id="${r.room_id}" data-type="${r.type}">${r.name} (${r.type})</div>`
+            ).join('');
+            document.querySelectorAll('.search-result-item').forEach(el => {
+                el.onclick = () => {
+                    const room = allRooms.find(r => r.room_id === el.dataset.id);
+                    if (room) {
+                        flyToRoom(room.room_id);
+                        const targetType = room.type;
+                        filterPoiByTypes([targetType]);
+                        document.querySelectorAll('.filter-tag').forEach(t => {
+                            t.classList.toggle('active', t.dataset.type === targetType);
+                        });
+                        activeTypes = [targetType];
+                        resDiv.innerHTML = '';
+                    }
+                };
+            });
+        };
+    }
     
-    // 点击搜索框外部关闭结果列表（可选）
+    // 点击外部关闭搜索列表
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.search-section')) {
-            safeGet('search-results').innerHTML = '';
+            const resDiv = getEl('search-results');
+            if (resDiv) resDiv.innerHTML = '';
         }
     });
     
-    // 引导关闭
-    safeGet('close-guide').onclick = () => document.getElementById('guide-modal').style.display = 'none';
+    // 关闭引导
+    const closeGuide = getEl('close-guide');
+    if (closeGuide) closeGuide.onclick = () => {
+        const guide = getEl('guide-modal');
+        if (guide) guide.style.display = 'none';
+    };
     
     // 提醒设置
-    safeGet('reminder-btn').onclick = () => {
-        const dd = safeGet('reminder-dropdown');
-        dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
-    };
-    safeGet('reminder-time-select').onchange = (e) => setReminderMinutes(parseInt(e.target.value));
+    const reminderBtn = getEl('reminder-btn');
+    if (reminderBtn) {
+        reminderBtn.onclick = () => {
+            const dd = getEl('reminder-dropdown');
+            if (dd) dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+        };
+    }
+    const reminderSelect = getEl('reminder-time-select');
+    if (reminderSelect) reminderSelect.onchange = (e) => setReminderMinutes(parseInt(e.target.value));
     
     // 关闭路径面板
-    safeGet('close-route').onclick = () => {
-        document.getElementById('route-panel').style.display = 'none';
-        clearRoute();
-    };
-
-    // 选点导航
-    const pickStart = safeGet('pick-start-btn');
-    const pickEnd = safeGet('pick-end-btn');
-    const navStart = safeGet('start-navigation-btn');
-    
-    pickStart.onclick = () => {
-        window.pickingMode = 'start';
-        pickStart.classList.add('active');
-        pickEnd.classList.remove('active');
-        map.getContainer().style.cursor = 'crosshair';
-    };
-    pickEnd.onclick = () => {
-        window.pickingMode = 'end';
-        pickEnd.classList.add('active');
-        pickStart.classList.remove('active');
-        map.getContainer().style.cursor = 'crosshair';
-    };
-    navStart.onclick = () => {
-        if (!startPoint || !endPoint) return;
-        const path = findPath(startPoint.roomId, endPoint.roomId);
-        if (path && path.length > 0) {
-            drawRoute(path);
-            const endRoom = allRooms.find(r => r.room_id === endPoint.roomId);
-            if (endRoom) {
-                filterFloor(endRoom.floor_number);
-                map.setView([endRoom.center[1], endRoom.center[0]], 1.2);
-            }
-            document.getElementById('route-panel').style.display = 'block';
-            document.getElementById('route-info').innerHTML = `从 ${startPoint.name} 到 ${endPoint.name}`;
-        } else {
-            alert('路径规划失败');
-        }
-    };
-    
-    // 清除选点
-    safeGet('clear-points-btn').onclick = () => {
-        startPoint = null;
-        endPoint = null;
-        document.getElementById('start-point-label').textContent = '未选择';
-        document.getElementById('end-point-label').textContent = '未选择';
-        document.getElementById('start-navigation-btn').disabled = true;
-        clearRoute();
-        document.getElementById('route-panel').style.display = 'none';
-        pickStart.classList.remove('active');
-        pickEnd.classList.remove('active');
-        map.getContainer().style.cursor = '';
-        window.pickingMode = null;
-    };
+    const closeRoute = getEl('close-route');
+    if (closeRoute) {
+        closeRoute.onclick = () => {
+            const panel = getEl('route-panel');
+            if (panel) panel.style.display = 'none';
+            clearRoute();
+        };
+    }
     
     // 关闭房间列表弹窗
-    safeGet('close-room-list').onclick = () => {
-        document.getElementById('room-list-modal').style.display = 'none';
-    };
+    const closeRoomList = getEl('close-room-list');
+    if (closeRoomList) {
+        closeRoomList.onclick = () => {
+            const modal = getEl('room-list-modal');
+            if (modal) modal.style.display = 'none';
+        };
+    }
+
+    // 选点导航
+    const pickStart = getEl('pick-start-btn');
+    const pickEnd = getEl('pick-end-btn');
+    const navStart = getEl('start-navigation-btn');
+    
+    if (pickStart) {
+        pickStart.onclick = () => {
+            window.pickingMode = 'start';
+            pickStart.classList.add('active');
+            if (pickEnd) pickEnd.classList.remove('active');
+            if (map && map.getContainer) map.getContainer().style.cursor = 'crosshair';
+        };
+    }
+    if (pickEnd) {
+        pickEnd.onclick = () => {
+            window.pickingMode = 'end';
+            pickEnd.classList.add('active');
+            if (pickStart) pickStart.classList.remove('active');
+            if (map && map.getContainer) map.getContainer().style.cursor = 'crosshair';
+        };
+    }
+    if (navStart) {
+        navStart.onclick = () => {
+            if (!startPoint || !endPoint) return;
+            const path = findPath(startPoint.roomId, endPoint.roomId);
+            if (path && path.length > 0) {
+                drawRoute(path);
+                const endRoom = allRooms.find(r => r.room_id === endPoint.roomId);
+                if (endRoom) {
+                    filterFloor(endRoom.floor_number);
+                    map.setView([endRoom.center[1], endRoom.center[0]], 1.2);
+                }
+                const panel = getEl('route-panel');
+                const info = getEl('route-info');
+                if (panel) panel.style.display = 'block';
+                if (info) info.innerHTML = `从 ${startPoint.name} 到 ${endPoint.name}`;
+            } else {
+                alert('路径规划失败');
+            }
+        };
+    }
+    
+    // 清除选点
+    const clearBtn = getEl('clear-points-btn');
+    if (clearBtn) {
+        clearBtn.onclick = () => {
+            startPoint = null;
+            endPoint = null;
+            const startLabel = getEl('start-point-label');
+            const endLabel = getEl('end-point-label');
+            if (startLabel) startLabel.textContent = '未选择';
+            if (endLabel) endLabel.textContent = '未选择';
+            if (navStart) navStart.disabled = true;
+            clearRoute();
+            const panel = getEl('route-panel');
+            if (panel) panel.style.display = 'none';
+            if (pickStart) pickStart.classList.remove('active');
+            if (pickEnd) pickEnd.classList.remove('active');
+            if (map && map.getContainer) map.getContainer().style.cursor = '';
+            window.pickingMode = null;
+        };
+    }
 }
 
-// 显示指定类型的房间列表弹窗
+// 显示指定类型的房间列表弹窗（保持不变，但需内部判空）
 function showRoomListModal(type) {
     let rooms;
-    // 特殊处理：办公室类型匹配所有包含“办公室”的房间
     if (type === '办公室') {
         rooms = allRooms.filter(r => r.type.includes('办公室'));
     } else {
@@ -224,7 +271,6 @@ function showRoomListModal(type) {
         return;
     }
     
-    // 按楼层分组
     const byFloor = {};
     rooms.forEach(r => {
         const f = r.floor_number;
@@ -246,10 +292,11 @@ function showRoomListModal(type) {
         html += `</div>`;
     });
     
-    document.getElementById('room-list-title').textContent = `${type} 列表 (共 ${rooms.length} 间)`;
-    document.getElementById('room-list-container').innerHTML = html;
+    const titleEl = document.getElementById('room-list-title');
+    const container = document.getElementById('room-list-container');
+    if (titleEl) titleEl.textContent = `${type} 列表 (共 ${rooms.length} 间)`;
+    if (container) container.innerHTML = html;
     
-    // 绑定列表项点击事件
     document.querySelectorAll('.room-list-item').forEach(el => {
         el.onclick = () => {
             const roomId = el.dataset.roomid;
@@ -258,28 +305,36 @@ function showRoomListModal(type) {
                 const defaultStart = allRooms.find(r => r.room_id === '1-stair1') || allRooms[0];
                 startPoint = { roomId: defaultStart.room_id, name: defaultStart.name, center: defaultStart.center };
                 endPoint = { roomId: room.room_id, name: room.name, center: room.center };
-                document.getElementById('start-point-label').textContent = startPoint.name;
-                document.getElementById('end-point-label').textContent = endPoint.name;
-                document.getElementById('start-navigation-btn').disabled = false;
+                const startLabel = document.getElementById('start-point-label');
+                const endLabel = document.getElementById('end-point-label');
+                if (startLabel) startLabel.textContent = startPoint.name;
+                if (endLabel) endLabel.textContent = endPoint.name;
+                const navBtn = document.getElementById('start-navigation-btn');
+                if (navBtn) navBtn.disabled = false;
                 
                 const path = findPath(startPoint.roomId, endPoint.roomId);
                 if (path && path.length > 0) {
                     drawRoute(path);
                     filterFloor(room.floor_number);
                     map.setView([room.center[1], room.center[0]], 1.2);
-                    document.getElementById('route-panel').style.display = 'block';
-                    document.getElementById('route-info').innerHTML = `前往 ${room.name}`;
+                    const panel = document.getElementById('route-panel');
+                    const info = document.getElementById('route-info');
+                    if (panel) panel.style.display = 'block';
+                    if (info) info.innerHTML = `前往 ${room.name}`;
                 }
-                document.getElementById('room-list-modal').style.display = 'none';
+                const modal = document.getElementById('room-list-modal');
+                if (modal) modal.style.display = 'none';
             }
         };
     });
     
-    document.getElementById('room-list-modal').style.display = 'flex';
+    const modal = document.getElementById('room-list-modal');
+    if (modal) modal.style.display = 'flex';
 }
 
 function renderScheduleList() {
     const container = document.getElementById('today-schedule');
+    if (!container) return;
     if (!currentSchedule || currentSchedule.length === 0) {
         container.innerHTML = '<div class="empty-state">暂无课程，点击右上角导入</div>';
         return;
@@ -315,8 +370,10 @@ function renderScheduleList() {
                 if (targetRoom) {
                     filterFloor(targetRoom.floor_number);
                     map.setView([targetRoom.center[1], targetRoom.center[0]], 1.2);
-                    document.getElementById('route-panel').style.display = 'block';
-                    document.getElementById('route-info').innerHTML = `前往 ${targetRoom.name}`;
+                    const panel = document.getElementById('route-panel');
+                    const info = document.getElementById('route-info');
+                    if (panel) panel.style.display = 'block';
+                    if (info) info.innerHTML = `前往 ${targetRoom.name}`;
                 }
             } else {
                 alert('路径规划失败');
@@ -334,8 +391,10 @@ window.navigateToRoom = (targetRoomId) => {
         if (targetRoom) {
             filterFloor(targetRoom.floor_number);
             map.setView([targetRoom.center[1], targetRoom.center[0]], 1.2);
-            document.getElementById('route-panel').style.display = 'block';
-            document.getElementById('route-info').innerHTML = `前往 ${targetRoom.name}`;
+            const panel = document.getElementById('route-panel');
+            const info = document.getElementById('route-info');
+            if (panel) panel.style.display = 'block';
+            if (info) info.innerHTML = `前往 ${targetRoom.name}`;
         }
     } else {
         alert('路径规划失败');
