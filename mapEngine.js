@@ -181,3 +181,48 @@ function clearRoute() {
         window.routeLine = null;
     }
 }
+// 在 mapEngine.js 底部添加
+
+let is3D = false; // 初始为 2D 状态
+
+function toggle3D() {
+    is3D = !is3D;
+    const mapContainer = document.getElementById('map');
+    const btn3d = document.getElementById('btn-3d');
+
+    if (is3D) {
+        // 进入 3D 模式：倾斜 + 旋转 + 透视
+        // perspective(1000px): 设置透视距离，产生近大远小的立体感
+        // rotateX(50deg): 绕X轴倾斜，形成俯视立体视角
+        // scale(1.1): 稍微放大一点，防止倾斜后边缘露出
+        mapContainer.style.transform = 'perspective(1000px) rotateX(50deg) scale(1.1)';
+        
+        // 更新按钮样式
+        btn3d.classList.add('bg-blue-600', 'text-white');
+        btn3d.classList.remove('text-primary', 'bg-white');
+        
+        // 关键：为了在3D视角下标记和房间多边形依然清晰，可以尝试对内部元素做反向补偿（视情况而定）
+        // 这里提供一个简单的思路，如果效果好就保留，不好就删掉
+        document.querySelectorAll('.leaflet-marker-icon, .leaflet-popup').forEach(el => {
+            el.style.transform += ' rotateX(-30deg)'; // 反向补偿，让图标不跟着完全倒下
+        });
+        
+    } else {
+        // 恢复 2D 模式
+        mapContainer.style.transform = 'none';
+        
+        // 恢复按钮样式
+        btn3d.classList.remove('bg-blue-600', 'text-white');
+        btn3d.classList.add('text-primary', 'bg-white');
+        
+        // 恢复所有元素的补偿
+         document.querySelectorAll('.leaflet-marker-icon, .leaflet-popup').forEach(el => {
+            el.style.transform = el.style.transform.replace(' rotateX(-30deg)', '');
+        });
+    }
+    
+    // 关键点：切换视角后需要通知 Leaflet 重新计算视野，防止报错
+    setTimeout(() => {
+        map.invalidateSize({animate: true});
+    }, 500); // 等 500ms CSS过渡动画完成后再重置
+}
